@@ -1,0 +1,551 @@
+---
+title: "Project 3"
+author: "Group 2"
+date: "April 6, 2018"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+# Step 0: Load library and data set
+
+```{r step0}
+
+if(!require("lsa")){
+install.packages("lsa")
+}
+library("lsa")
+
+
+############################## Set working directory here ####################################
+setwd("/Users/wcheng/Desktop/Spring 2018/data science/project-3-algorithms-project-3-algorithms-group-2")
+##############################################################################################
+
+# Set the directory for eatch dataset
+dir_MS <- "/data/Proj3_Data/MS_sample/"
+dir_movie <- "/data/Proj3_Data/eachmovie_sample/"
+
+# Load the data
+MS_train <- read.csv(paste(getwd(),dir_MS, "data_train.csv", sep = ""), as.is = TRUE, header = TRUE)
+MS_train <- MS_train[, 2:4]
+MS_test <- read.csv(paste(getwd(),dir_MS, "data_test.csv", sep = ""), as.is = TRUE, header = TRUE)
+MS_test <- MS_test[, 2:4]
+
+movie_train <- read.csv(paste(getwd(),dir_movie, "data_train.csv", sep = ""), as.is = TRUE, header = TRUE)
+movie_train <- movie_train[, 2:4]
+movie_test <- read.csv(paste(getwd(),dir_movie, "data_test.csv", sep = ""), as.is = TRUE, header = TRUE)
+movie_test <- movie_test[, 2:4]
+
+```
+
+# Step 1: Data preparation and constants setting
+
+### Functions
++ MS_data_transform (Calculate UI matrix for Microsoft data)
++ movie_data_transform (Calculate UI matrix for eachmovie data)
+
+```{r step1}
+
+###############################################################
+#################### Constants definition #####################
+###############################################################
+
+run.pearson <- F
+run.entropy <- F
+run.spearman <- F
+run.sqdiff <- F
+run.cosin <- F
+load <- T
+
+# Constants for SimRank calculations
+C1 <- 0.8
+C2 <- 0.8
+K <- 5
+alpha <- 5 #to be used in the denominator of the ranked scoring
+d <- 0.01 #to be used as the neutral weight in ranked scoring
+
+
+###############################################################
+###################### Data Preparation #######################
+###############################################################
+
+source("../lib/functions.R")
+source("../lib/simrank.R")
+
+
+
+if(!load){
+  # Transform from narrow to wide, i.e. user-item matrix 
+  # using MS_data_transform function
+
+  # Below takes 2 minutes
+  MS_UI <- MS_data_transform(MS_train)
+  save(MS_UI, file = "../output/MS_UI.RData")
+
+  # using MS_data_transform function
+  
+  # Below takes 4 minutes
+  movie_UI <- movie_data_transform(movie_train)
+  save(movie_UI, file = "../output/movie_UI.Rdata")
+}else{
+  # If we want to directly pull out the user-item matrix from the data folder
+  load("../output/MS_UI.Rdata")
+  load("../output/movie_UI.Rdata")
+}
+
+
+
+```
+
+# Step 2: Memory-Based Algorithm
+
+## 2.1: Calculate similarity weights
+
+### Functions
++ calc_weight (Calculate similarity weight matrix, except for simrank)
++ simrank (Calculate simrank score)
+
+```{r step2.1}
+
+#################################################################
+######## Calculating the Similarity Weights of the Users ########
+#################################################################
+
+if(!load){
+  
+
+  # Initiate the similarity weight matrix
+  
+  movie_UI         <- as.matrix(movie_UI)
+  movie_sim_weight <- matrix(NA, nrow = nrow(movie_UI), ncol = nrow(movie_UI))
+  
+  # Calculate the pearson weights on the movie data
+  # The below took 87 minutes on my Macbook, 35 on my iMac
+  
+  movie_sim <- calc_weight(movie_UI, run.pearson = T)
+  save(movie_sim, file = "../output/movie_sim.RData")
+  
+  
+  # Calculate the pearson weights on the MS data
+  # The below took 30 minutes on my Macbook and 14 on my iMac
+  
+  MS_sim <- calc_weight(MS_UI, run.pearson = T)
+  save(MS_sim, file = "../output/MS_sim.RData")
+  
+  
+  # Calculate the entropy weights on the movie data
+  # The below took 46460 seconds
+  
+  tm_movie_ent <- system.time(movie_ent <- 
+                                calc_weight(movie_UI, run.entropy = T))
+  save(movie_ent, file = "../output/movie_ent.RData")
+  
+  
+  # Calculate the entropy weights on the MS data
+  # The below took 51548 seconds
+  
+  tm_MS_ent <- system.time(MS_ent <- 
+                             calc_weight(MS_UI, run.entropy = T))
+  save(MS_ent, file = "../output/MS_ent.RData")
+  
+  # Calculate the spearman weights on the movie data
+  # The below took 3668.39s
+  
+  tm_movie_spm <- system.time(movie_spm <- 
+                                calc_weight(movie_UI,run.spearman = T))
+  save(movie_spm, file = "../output/movie_spm.RData")
+  
+  
+  # Calculate the spearman weights on the MS data
+  # The below took 2071s
+  
+  tm_MS_spm <- system.time(MS_spm <- 
+                             calc_weight(MS_UI, run.spearman = T))
+  save(MS_spm, file = "../output/MS_spm.RData")
+  
+  # Calculate the cosin weights on the movie data
+  # The below took  20808 seconds
+  
+  tm_movie_cos <- system.time(movie_cos <- 
+                                calc_weight(movie_UI,run.cosin = T))
+  save(movie_cos, file = "../output/movie_cos.RData")
+  
+  
+  # Calculate the cosin weights on the MS data
+  # The below took 13891 seconds
+  
+  tm_MS_cos <- system.time(MS_cos <- 
+                             calc_weight(MS_UI, run.cosin = T))
+  save(MS_cos, file = "../output/MS_cos.RData")
+  
+  # Calculate the squared difference weights on the movie data
+  # The below took  4606 seconds
+  
+  tm_movie_sqd <- system.time(movie_sqd <- 
+                                calc_weight(movie_UI,run.sqdiff = T))
+  save(movie_sqd, file = "../output/movie_sqd.RData")
+  
+  
+  # Calculate the squared difference weights on the MS data
+  # The below took 1560 seconds
+  
+  tm_MS_sqd <- system.time(MS_sqd <- 
+                                calc_weight(MS_UI,run.sqdiff = T))
+  save(MS_sqd, file = "../output/MS_sqd.RData")
+  
+  # Calculate the simrank weights on the movie data
+  # The below took 48+ hours
+  
+  movie_simrank <- generate_simrank_rdata()
+  save(movie_simrank, file = "../output/movie_simrank.RData")
+  
+  # Calculate the simrank weights on the MS data
+  # We didn't have enough time to finish running for MS data.
+  
+  MS_sim <- simrank(MS_UI)
+  save(MS_simrank, file = "../output/MS_simrank.RData")
+  
+
+  
+  
+}else{
+  # If we want to save the time and load the weights calculated already
+  load("../output/movie_sim.RData")
+  load("../output/MS_sim.RData")
+  load("../output/movie_ent.RData")
+  load("../output/MS_ent.RData")
+  load("../output/movie_sqd.RData")
+  load("../output/MS_sqd.RData")
+  load("../output/movie_cos.RData")
+  load("../output/MS_cos.RData")
+  load("../output/movie_spm.RData")
+  load("../output/MS_spm.RData")
+  load("../output/movie_simrank.RData")
+
+}
+```
+
+## Step 2.2: Adding significance weights and variance weights
+
+### Functions
++ calc_significance (Calculate significance coefficient matrix)
++ calc_weight_var (Calculate variance coefficient matrix)
+
+  Significance weight can be calculated for each dataset and then dot multiply any similarity weight matrix to get the combined weight.
+  Variance weights can only be computed at the same time when we calculate the similarity weights. Thus we only chose one similarity weight to be added to variance weights. We chose pearson correlation because the paper suggests it is the best performing weight.
+  
+
+```{r step2.2, message=FALSE, warning=FALSE, include=FALSE}
+#################################################################
+###### Calculating the significance Weights of the Users ########
+#################################################################
+
+if(!load){
+  # Significance weight can be calculated for each dataset and then dot multiply any similarity
+  # weight matrix to get the combined weight
+  
+  # significance weight of movie set
+  # Time 1336.62s
+  tm_movie_sig <- system.time(movie_sig <- 
+                             calc_significance(movie_UI,lower = 50))
+  save(movie_sig, file = "../output/movie_sig.RData")
+  
+  # significance weight of MS set
+  # Time 1232.116s
+  tm_MS_sig <- system.time(MS_sig <- 
+                             calc_significance(MS_UI,lower = 10))
+  save(MS_sig, file = "../output/MS_sig.RData")
+  
+}else{
+  load("../output/movie_sig.RData")
+  load("../output/MS_sig.RData")
+}
+
+
+#################################################################
+######## Calculating the variance Weights of the Users ##########
+#################################################################
+
+if(!load){
+  # Variance weights can only be computed at the same time when we calculate the similarity weights
+  # Thus we only chose one similarity weight to be added to variance weights
+  # We chose pearson correlation because the paper suggests it is the best performing weight
+  
+  #Time 1915.88s 
+  tm_movie_spm_var <- system.time(movie_spm_variance <- 
+                             calc_weight_var(movie_UI, method = "pearson"))
+  save(movie_spm_variance, file = "../output/movie_pear_variance.RData")
+  
+  #Time 791.53s 
+  tm_MS_pear_var <- system.time(MS_pear_variance <- 
+                             calc_weight_var(MS_UI, method = "pearson"))
+  save(MS_pear_variance, file = "../output/MS_pear_variance.RData")
+}else{
+  load("../output/movie_pear_variance.RData")
+  load("../output/MS_pear_variance.RData")
+}
+
+
+
+```
+
+## Step 2.3: Calculating predictions
+
+### Functions
++ pred_matrix (Calculate prediction matrix)
+
+```{r step2.3}
+
+###########################################################
+######## Calculating the Predictions for the Users ########
+###########################################################
+
+source("../lib/Memory-based.R")
+
+if(!load){
+  
+  # Calculate predictions for MS based on pearson correlation
+  # This calculation took me 15 minutes
+  
+  MS_pred <- pred_matrix(MS_UI, MS_sim)
+  save(MS_pred, file = "../output/MS_pred.RData")
+  
+  # Calculate predictions for movies based on pearson correlation
+  # This calculation took me 1+ hour
+  
+  movie_pred <- pred_matrix(movie_UI, movie_sim)
+  save(movie_pred, file = "../output/movie_pred.RData")
+  
+  # Calculate predictions for movies based on spearman correlation
+  # Time 3228.86s
+  tm_movie_spm <- system.time(movie_spm_predict <- 
+                             pred_matrix(movie_UI,movie_spm))
+  save(movie_spm_predict, file = "../output/movie_spm_predict.RData")
+  
+  # Calculate predictions for MS based on spearman correlation
+  # This calculation took me 15 minutes
+  
+  MS_pred_spm <- pred_matrix(MS_UI, MS_spm)
+  save(MS_pred_spm, file = "../output/MS_spm_predict.RData")
+  
+  
+  # Calculate predictions for movies based on cosin correlation
+  #Time 3290.46s
+  movie_cos_predict <- pred_matrix(movie_UI,movie_cos)
+  save(movie_cos_predict, file = "../output/movie_cos_predict.RData")
+  
+  # Calculate predictions for MS based on cosin correlation
+  #Time 
+  MS_cos_predict <- pred_matrix(MS_UI,MS_cos)
+  save(MS_cos_predict, file = "../output/MS_cos_predict.RData")
+  
+  
+  # Calculate predictions for MS based on squared difference similarity
+  # This calculation took me 15 minutes
+  
+  MS_pred_sqd <- pred_matrix(MS_UI, MS_sqd)
+  save(MS_pred_sqd, file = "../output/MS_pred_sqd.RData")
+  
+  # Calculate predictions for movies based on squared difference similarity
+  # This calculation took me 1+ hour
+  
+  movie_pred_sqd <- pred_matrix(movie_UI, movie_sqd)
+  save(movie_pred_sqd, file = "../output/movie_pred_sqd.RData")
+  
+  # Calculate predictions for MS based on entropy similarity
+  # This calculation took me 15 minutes
+  
+  MS_pred_ent <- pred_matrix(MS_UI, MS_ent)
+  save(MS_pred_ent, file = "../output/MS_pred_ent.RData")
+  
+  # Calculate predictions for movies based on entropy similarity
+  # This calculation took me 1+ hour
+  
+  movie_pred_ent <- pred_matrix(movie_UI, movie_ent)
+  save(movie_pred_ent, file = "../output/movie_pred_ent.RData")
+  
+  # Calculate predictions for MS based on simrank similarity
+  # This calculation took me 15 minutes
+  # 
+  # MS_pred_simrank <- pred_matrix(MS_UI, MS_simrank)
+  # save(MS_pred_sim, file = "../output/MS_pred_sim.RData")
+  
+  # Calculate predictions for movies based on simrank similarity
+  # This calculation took me 1+ hour
+  
+  movie_pred_simrank <- pred_matrix(movie_UI, movie_simrank)
+  save(movie_pred_simrank, file = "../output/movie_pred_simrank.RData")
+}else{
+  load("../output/MS_pred.Rdata")
+  load("../output/MS_spm_predict.RData")
+  load("../output/MS_pred_ent.RData")
+  load("../output/MS_cos_predict.RData")
+  load("../output/MS_pred_sqd.RData")
+  load("../output/movie_pred.RData")
+  load("../output/movie_spm_predict.RData")
+  load("../output/movie_cos_predict.RData")
+  load("../output/movie_pred_ent.RData")
+  load("../output/movie_pred_sqd.RData")
+  load("../output/movie_pred_simrank.RData")
+
+}
+```
+
+## Step 2.4: Evaluating the performance of memory-based algo
+
+### Functions
++ match_the_matrix (return a full matrix, with nonzero values from test matrix corrected)
++ rank_matrix (return the ranked test set matrix, based on predicted vote values)
++ ranked_scoring (return the ranked score for the predicted matrix)
++ MAE (return the Mean Absolute Error)
+
+
+```{r step2.4}
+
+###########################################################
+############## Evaluating the Predictions #################
+###########################################################
+
+# First transform the test data into UI matrix and correct the original matrix with test updates
+MS_test_UI <- MS_data_transform(MS_test)
+save(MS_test_UI, file = "../output/MS_test_UI.Rdata")
+
+movie_test_UI <- movie_data_transform(movie_test)
+save(movie_test_UI, file = "../output/movie_test_UI.Rdata")
+
+# ranked scores for MS data
+MS_score<- ranked_scoring(MS_pred, MS_test_UI,alpha, d)
+MS_score_spm<- ranked_scoring(MS_spm_predict, MS_test_UI,alpha, d)
+MS_score_cos<- ranked_scoring(MS_cos_predict, MS_test_UI,alpha, d)
+MS_score_ent<- ranked_scoring(MS_pred_ent, MS_test_UI,alpha, d)
+MS_score_sqd<- ranked_scoring(MS_pred_sqd, MS_test_UI,alpha, d)
+
+
+
+# Mean abslolute error for movie data
+movie_score<- MAE(movie_pred,movie_test_UI)
+movie_score_spm<- MAE(movie_spm_predict,movie_test_UI)
+movie_score_cos<- MAE(movie_cos_predict,movie_test_UI)
+movie_score_ent<- MAE(movie_pred_ent,movie_test_UI)
+movie_score_sqd<- MAE(movie_pred_sqd,movie_test_UI)
+
+
+
+
+```
+
+# Appendix: Making sure the functions do what they're supposed to do
+
+  Since most the operations take at least an hour to finish, I have built a smaller dataset for the user to check that the functions do work on a smaller dimension.
+
+```{r app, message=FALSE, warning=FALSE, include=FALSE}
+load("../output/MS_UI.Rdata")
+load("../output/movie_UI.Rdata")
+
+# For the MS dataset
+example <- MS_UI[1:100,]
+example_sim <- calc_weight(example,run.pearson = T)
+example_cos <- calc_weight(example,run.cosin = T)
+example_spm <- calc_weight(example,run.spearman = T)
+example_sqd <- calc_weight(example,run.sqdiff = T)
+example_ent <- calc_weight(example, run.entropy = T)
+head(example_sim)[1:5]
+head(example_cos)[1:5]
+head(example_spm)[1:5]
+head(example_sqd)[1:5]
+head(example_ent)[1:5]
+
+# For the movie dataset
+example <- movie_UI[1:100,]
+example_sim <- calc_weight(example,run.pearson = T)
+example_cos <- calc_weight(example,run.cosin = T)
+example_spm <- calc_weight(example,run.spearman = T)
+example_sqd <- calc_weight(example,run.sqdiff = T)
+example_ent <- calc_weight(example, run.entropy = T)
+head(example_sim)[1:5]
+head(example_cos)[1:5]
+head(example_spm)[1:5]
+head(example_sqd)[1:5]
+head(example_ent)[1:5]
+
+# Calculate similarity weight
+example_sig <- calc_significance(example, 50)
+head(example_sig)[1:5]
+
+# Calculate variance weight
+example_var <- calc_weight_var(example, method = "pearson")
+head(example_var)[1:5]
+
+# Calculate the simrank
+example_simrank <- simrank(MS_UI[1:100,])
+
+```
+
++ Notice that cosine and pearson similarity give the same weights on both dataset.
+This is because we centered the movie data when we computed the cosine similarity.
+
++ Pearson and spearman similarity are the same for the MS dataset.
++ Although we weren't able to run the simrank on MS data, our code does give accurate calculation on a smaller subset.
+
+
+# Step 3: Model-Based Algorithm 
+
+## Step 3.1: Calculating parameters and assignment matrix
+
+### Functions
++ em_movie (a multi-level iterative function for eachmovie data with the following steps and parameters):
+
+  - e_step (short for Expectation-Step): 
+    Input: Mu (mean of each cluster) & gamma array (a 3-dimensional arraycomposed of probabilities of
+    rating a certain movie a certain score given a user belongs to a certain cluster)
+    Output: Assignment matrix (probabilities of a user belonging to each cluster) 
+
+  - m_step (short for Maximization-Step): 
+    Input: Updated assignment matrix 
+    Output: Updated mu and gamma parameters 
+
+
+```{r step3.1}
+source("../lib/em_function.R")
+
+##### Implement EM for MS data ##########
+
+EM_10_MS <- em_step(MS_UI, C = 5, scores = 2, iteration = 10, tol = 0.01, conver = 1)
+
+save(EM_10_MS, file = "../output/EM_10_MS.Rdata")
+
+##### Implement EM for movie data ##########
+
+EM_10_Movie <- em_step(movie_UI, C = 5, scores = 6, iteration = 10, tol = 0.01, conver = 1)
+
+save(EM_10_Movie, file = "../output/EM_10_Movie.Rdata")
+```
+
+### Step 3.2: Making predictions
+
+After the E and M steps are complete, to make predictions we take the gamma array, which gives us the probability of a particular movie being rated a particular score, given a specific cluster, and the assignment matrix which gives us the probability of a particular user being in any given cluster. We then find the index of the max value of each user to give us the cluster assignment of that user, and then find the index of the max probability of scores 1 - 6 (or the probabilities in the case of the MS data) for each movie (website), given the cluster assignment. With that knowledge we generate a prediction matrix similar to our starting matrix of users by movies, with each data point being the predicted score for that user and movie. 
+
+```{r step3.2}
+source("../lib/em_pred_movie.R")
+source("../lib/em_pred_MS.R")
+
+##### Prediction with MS data ##########
+
+ms_pred_model <- em_pred_MS(data = MS_UI, gamma = gamma, assign_mat = assign_mat)
+
+save(MS_pred, file = "../output/ms_pred.Rdata")
+
+##### Prediction with movie data ##########
+
+movie_pred_model <- em_pred_movie(data = movie_UI, gamma = gamma, assign_mat = assign_mat)
+
+save(movie_pred, file = "../output/movie_pred.Rdata")
+
+```
+
+
+
+
+
+
+
