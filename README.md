@@ -1,7 +1,6 @@
-# Spring2018
-
-
 # Project 3- Collaborative Filtering Implementation and Evaluation
+
+*This is a group project to which I contributed for Spring 2018 STAT 4243 Applied Data Science at Columbia University.*
 
 ----
 
@@ -45,7 +44,7 @@ We ran the EM algorithm on the whole movie and MS datasets; however, due to time
 
 + Wanting Cheng: Memory-Based: entropy, mean-square-difference, simrank, impliemtation and prediction, compiled main.R and function.R, coded evaluation metrics for both ranked scoring and MAE, EM Algorithm. 
 + Kai Li: EM Algorithm, Memory-Based:spearman, consine similiarty, significant weighting, variance weighting, impliemtation and prediction.
-+ Joo Kim: Helped code and organize E and M-step functions, created and contributed to readme and PPT presentation. 
++ Joo Kim: Model-Based: coded E and M-step functions, created and contributed to readme and PPT presentation. 
 + Kenny Warner: Helped code E step and created prediction functions and prediction matrices. 
 
 Following [suggestions](http://nicercode.github.io/blog/2013-04-05-projects/) by [RICH FITZJOHN](http://nicercode.github.io/about/#Team) (@richfitz). This folder is orgarnized as follows.
